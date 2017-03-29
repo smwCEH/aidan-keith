@@ -3,8 +3,6 @@ __author__ = 'smw'
 __email__ = 'smw@ceh.ac.uk'
 __status__ = 'Development'
 
-# Bastardised from:  http://earthpy.org/pandas_netcdf.html
-
 import os
 import sys
 
@@ -26,6 +24,9 @@ def main():
     method = 'XARRAY'
 
     if method == 'THREDDS':
+
+        # Bastardised from:  http://earthpy.org/pandas_netcdf.html
+
         print('\n\n', method)
 
         url = 'http://192.171.173.134/thredds/dodsC/chess/driving_data/aggregation/tas_aggregation'
@@ -92,6 +93,9 @@ def main():
         f.close()
 
     elif method == 'MULTI-FILE':
+
+        # Doesn't work as the CHESS netCDF files are in NETCDF4 format.
+        # Multi-file datasets works with NETCDF4_CLASSIC, NETCDF3_CLASSIC, NETCDF3_64BIT_OFFSET or NETCDF3_64BIT_DATA only.
         print('\n\n', method)
 
         netcdf_folder = r'Z:\eidchub\b745e7b1-626c-4ccc-ac27-56582e77b900'
@@ -113,12 +117,44 @@ def main():
         f.close()
 
     elif method == 'XARRAY':
+
+        # Bastardised from:  http://xarray.pydata.org/en/stable/examples/monthly-means.html
+
         print('\n\n', method)
 
-        url = 'http://192.171.173.134/thredds/dodsC/chess/driving_data/aggregation/tas_aggregation'
-        ds = xr.open_dataset(url)
-        print(ds)
-        ds.close()
+        variables_dict = {'dtr':     'Daily temperature range',
+                          'huss':    'Specific humidity',
+                          'precip':  'Rainfall',
+                          'psurf':   'Air pressure',
+                          'rlds':    'LW Radiation',
+                          'rsds':    'SW Radiation',
+                          'sfcWind': 'Wind speed',
+                          'tas':     'Air temperature'
+                          }
+
+        for variable in variables_dict.keys():
+            print('\n\nvariable:\t\t{0}'.format(variable))
+
+            url = 'http://192.171.173.134/thredds/dodsC/chess/driving_data/aggregation/{0}_aggregation'.format(variable.lower())
+            ds = xr.open_dataset(url)
+            print(ds)
+
+            ds_subset = ds[variable][:, 475:499, 325:349]
+            print(ds_subset)
+
+            # ds_month = ds_subset.groupby('time.month').mean(dim='time')
+            # print(ds_month)
+            # print(type(ds_month))
+            #
+            # out_netcdf_folder = r'E:\CountrysideSurvey\aidan-keith\netcdf'
+            # out_netcdf_file = r'{0}_month.nc'.format(variable)
+            # out_netcdf_file = os.path.join(out_netcdf_folder, out_netcdf_file)
+            # ds_month.to_netcdf(path=out_netcdf_file, mode='w', format='NETCDF4')
+            #
+            # del ds_month
+            # del ds_subset
+
+            ds.close()
 
 
 
