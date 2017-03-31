@@ -133,32 +133,52 @@ def main():
                           }
 
 
-        # for variable in variables_dict.keys():
+        for variable in variables_dict.keys():
         # variable_list = list(variables_dict.keys())
         # print(variable_list)
         # variable_list = list(variable_list[0])
         # print(variable_list)
-        for variable in ['sfcWind']:
+        # for variable in ['sfcWind']:
             print('\n\nvariable:\t\t{0}'.format(variable))
 
             url = 'http://192.171.173.134/thredds/dodsC/chess/driving_data/aggregation/{0}_aggregation'.format(variable.lower())
             ds = xr.open_dataset(url)
-            print(ds)
+            print('\n\n', ds)
 
-            ds_subset = ds[:, 475:499, 325:349]
-            print(ds_subset)
-
-            ds_month = ds_subset.groupby('time.month').mean(dim='time')
-            print(ds_month)
-            print(type(ds_month))
+            ds_subset = ds[variable][:, :, :]
+            # ds_subset = ds[variable][:, 400:500, 300:400]
+            # ds_subset = ds[variable][:, 475:500, 325:350]
+            print('\n\n', ds_subset)
 
             out_netcdf_folder = r'E:\CountrysideSurvey\aidan-keith\netcdf'
-            out_netcdf_file = r'{0}_month.nc'.format(variable)
-            out_netcdf_file = os.path.join(out_netcdf_folder, out_netcdf_file)
-            ds_month.to_netcdf(path=out_netcdf_file, mode='w', format='NETCDF4')
 
-            del ds_month
-            del ds_subset
+            # ds_month = ds.groupby('time.month').mean(dim='time')
+            ds_month = ds_subset.groupby('time.month')
+            print('\n\n', ds_month)
+            for name, group in ds_month:
+                print('name:\t{0}\ngroup:\t{1}'.format(name, group))
+                print(group.coords)
+                ds_month_mean = group.mean(dim='time',
+                                           keep_attrs=True,
+                                           skipna=True)
+                print(ds_month_mean)
+                # xr.plot.plot(ds_month_mean)
+                out_netcdf_file = r'{0}_{1}.nc'.format(variable, str(name).zfill(2))
+                out_netcdf_file = os.path.join(out_netcdf_folder, out_netcdf_file)
+                ds_month_mean.to_netcdf(path=out_netcdf_file,
+                                        mode='w',
+                                        format='NETCDF4_CLASSIC',
+                                        engine='netcdf4')
+
+
+
+            # out_netcdf_folder = r'E:\CountrysideSurvey\aidan-keith\netcdf'
+            # out_netcdf_file = r'{0}_month.nc'.format(variable)
+            # out_netcdf_file = os.path.join(out_netcdf_folder, out_netcdf_file)
+            # ds_month.to_netcdf(path=out_netcdf_file, mode='w', format='NETCDF4')
+            #
+            # del ds_subset
+            # del ds_month
 
             ds.close()
 
