@@ -6,183 +6,38 @@ __status__ = 'Development'
 import os
 import sys
 
-from netCDF4 import Dataset, MFDataset, num2date
-import pandas as pd
-# from mpl_toolkits.basemap import Basemap
-import numpy as np
-import xarray as xr
+import netCDF4
+# from netCDF4 import Dataset, MFDataset, num2date
+
+
+print('netCDF4 version:\t{0}'.format(netCDF4.__version__))
 
 
 def main():
 
-    print("numpy version  : ", np.__version__)
-    print("pandas version : ", pd.__version__)
-    print("xarray version : ", xr.__version__)
+    in_netcdf_folder = r'E:\CountrysideSurvey\aidan-keith\netcdf'
 
-    # method = 'THREDDS'
-    # method = 'MULTI-FILE'
-    method = 'XARRAY'
+    variable_list = ['dtr', 'huss', 'precip', 'psurf', 'rlds', 'rsds', 'sfcWind', 'tas']
 
-    if method == 'THREDDS':
+    for variable in variable_list:
+        print('\n\nvariable:\t{0}'.format(variable))
 
-        # Bastardised from:  http://earthpy.org/pandas_netcdf.html
+        for month in range(1, 13, 1):
+            print('\tmonth:\t{0}'.format(month))
 
-        print('\n\n', method)
+            in_netcdf_file = '{0}_{1}.nc'.format(variable, str(month).zfill(2))
+            in_netcdf_file = os.path.join(in_netcdf_folder, in_netcdf_file)
+            print('\t\tin_netcdf_file:\t{0}'.format(in_netcdf_file))
 
-        url = 'http://192.171.173.134/thredds/dodsC/chess/driving_data/aggregation/tas_aggregation'
-        f = Dataset(url)
-        print(f.variables)
-        time = f.variables['time']
-        print('\n\n', time)
-        print(time.shape)
-        print(time.size)
-
-        # time = f.variables['time']
-        # print(time)
-        # START_DATE = time.units
-        # print(START_DATE)
-        # print(time[:])
-        # dates = num2date(times=time[:], units=time.units, calendar=time.calendar)
-        # print(dates)
-
-        # lon = f.variables['lon'][:]
-        # lat = f.variables['lat'][:]
-        # lon, lat = np.meshgrid(lon, lat)
-
-        tmin, tmax, tstep = 0, time.size, 1
-
-        dates = num2date(times=time[tmin:tmax], units=time.units)
-        print('\n\n', dates)
-
-        dates_pd = pd.to_datetime(dates)
-        print('\n\n', dates_pd)
-        periods = dates_pd.to_period(freq='D')
-        print(periods)
-
-        # mask_1961 = periods.year==1961
-        # data = tas[mask_1961, :, :].mean(axis=0)
-        # print('\n\n', data.shape)
-
-        # ymin, ymax, ystep = 0, f.variables['y'].size, 1
-        # xmin, xmax, xstep = 0, f.variables['x'].size, 1
-        ymin, ymax, ystep = 400, 402, 1
-        xmin, xmax, xstep = 400, 402, 1
-        print('\n\nymin:{0}\t\tymax:{1}\t\tystep:{2}'.format(ymin, ymax, ystep))
-        print('\n\nxmin:{0}\t\txmax:{1}\t\txstep:{2}'.format(xmin, xmax, xstep))
-
-        NODATA = f.variables['tas']._FillValue
-        print('\n\nNODATA:\t{0}'.format(NODATA))
-
-        for y in range(ymin, ymax, ystep):
-            for x in range(xmin, xmax, xstep):
-                print('\ty:{0},\tx:{1}'.format(y, x))
-                check = f.variables['tas'][0, y, x]
-                print('\t\t', check, type(check))
-                if type(check) == np.ma.core.MaskedConstant:
-                    print('\t\tmasked')
-                else:
-                    print('\t\tnot masked')
-                    tas = f.variables['tas'][tmin:tmax, y, x]
-                    print('\t\t', tas.shape)
-                    for month in range(1, 13, 1):
-                        print('\t\t\tmonth:{0}'.format(month))
-                        month_mask = periods.month == month
-                        data = tas[month_mask].mean(axis=0)
-                        print('\t\t\t', data)
-
-        f.close()
-
-    elif method == 'MULTI-FILE':
-
-        # Doesn't work as the CHESS netCDF files are in NETCDF4 format.
-        # Multi-file datasets works with NETCDF4_CLASSIC, NETCDF3_CLASSIC, NETCDF3_64BIT_OFFSET or NETCDF3_64BIT_DATA only.
-        print('\n\n', method)
-
-        netcdf_folder = r'Z:\eidchub\b745e7b1-626c-4ccc-ac27-56582e77b900'
-
-        for year in range(1961, 2016, 1):
-            for month in range(1, 13, 1):
-                netcdf_file = r'chess_tas_{0}{1}.nc'.format(year, str(month).zfill(2))
-                print('netcdf_file:\t{0}'.format(netcdf_file))
-                f = Dataset(os.path.join(netcdf_folder, netcdf_file))
-                print('\tf.file_format:\t{0}'.format(f.file_format))
-                f.close()
-
-        netcdf_file = r'chess_tas_*.nc'
-        print(os.path.join(netcdf_folder, netcdf_file))
-        f = MFDataset(os.path.join(netcdf_folder, netcdf_file), aggdim='time')
-        print(f.variables['time'])
-        print(f.variables['time'].shape)
-        print(f.variables['time'].size)
-        f.close()
-
-    elif method == 'XARRAY':
-
-        # Bastardised from:  http://xarray.pydata.org/en/stable/examples/monthly-means.html
-
-        print('\n\n', method)
-
-        variables_dict = {'dtr':     'Daily temperature range',
-                          'huss':    'Specific humidity',
-                          'precip':  'Rainfall',
-                          'psurf':   'Air pressure',
-                          'rlds':    'LW Radiation',
-                          'rsds':    'SW Radiation',
-                          'sfcWind': 'Wind speed',
-                          'tas':     'Air temperature'
-                          }
-
-
-        for variable in variables_dict.keys():
-        # variable_list = list(variables_dict.keys())
-        # print(variable_list)
-        # variable_list = list(variable_list[0])
-        # print(variable_list)
-        # for variable in ['sfcWind']:
-            print('\n\nvariable:\t\t{0}'.format(variable))
-
-            url = 'http://192.171.173.134/thredds/dodsC/chess/driving_data/aggregation/{0}_aggregation'.format(variable.lower())
-            ds = xr.open_dataset(url)
-            print('\n\n', ds)
-
-            ds_subset = ds[variable][:, :, :]
-            # ds_subset = ds[variable][:, 400:500, 300:400]
-            # ds_subset = ds[variable][:, 475:500, 325:350]
-            print('\n\n', ds_subset)
-
-            out_netcdf_folder = r'E:\CountrysideSurvey\aidan-keith\netcdf'
-
-            # ds_month = ds.groupby('time.month').mean(dim='time')
-            ds_month = ds_subset.groupby('time.month')
-            print('\n\n', ds_month)
-            for name, group in ds_month:
-                print('name:\t{0}\ngroup:\t{1}'.format(name, group))
-                print(group.coords)
-                ds_month_mean = group.mean(dim='time',
-                                           keep_attrs=True,
-                                           skipna=True)
-                print(ds_month_mean)
-                # xr.plot.plot(ds_month_mean)
-                out_netcdf_file = r'{0}_{1}.nc'.format(variable, str(name).zfill(2))
-                out_netcdf_file = os.path.join(out_netcdf_folder, out_netcdf_file)
-                ds_month_mean.to_netcdf(path=out_netcdf_file,
-                                        mode='w',
-                                        format='NETCDF4_CLASSIC',
-                                        engine='netcdf4')
-
-
-
-            # out_netcdf_folder = r'E:\CountrysideSurvey\aidan-keith\netcdf'
-            # out_netcdf_file = r'{0}_month.nc'.format(variable)
-            # out_netcdf_file = os.path.join(out_netcdf_folder, out_netcdf_file)
-            # ds_month.to_netcdf(path=out_netcdf_file, mode='w', format='NETCDF4')
-            #
-            # del ds_subset
-            # del ds_month
-
-            ds.close()
-
-
+            f = netCDF4.Dataset(in_netcdf_file)
+            # print(f.variables)
+            if variable == 'precip':
+                print('[{0}][475, 325]:\t{1:.4e}'.format(variable,
+                                                         float(f.variables[variable][475, 325])))
+            else:
+                print('[{0}][475, 325]:\t{1:.4f}'.format(variable,
+                                                         float(f.variables[variable][475, 325])))
+            f.close()
 
 
 if __name__ == '__main__':
